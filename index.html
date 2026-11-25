@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>百合花語｜品牌限時採集挑戰</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+    input, textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    body {
+      background: linear-gradient(135deg, #f5f2eb 0%, #e4dfd5 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 750px;
+      background: linear-gradient(180deg, #fffdf9 0%, #f6f0e4 65%, #ebe2d3 100%);
+      box-shadow: 0 16px 48px rgba(74, 93, 35, 0.18);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid #e2d8c8;
+      transition: transform 0.08s ease-out;
+    }
+    @media (max-width: 450px) {
+      #game-container {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+      }
+    }
+    /* 頂部資訊列 */
+    .hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      background: rgba(255, 253, 249, 0.88);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #e8dfd1;
+    }
+    .hud-box {
+      text-align: center;
+      min-width: 62px;
+    }
+    .hud-label {
+      font-size: 11px;
+      color: #7d8471;
+      letter-spacing: 1px;
+    }
+    .hud-value {
+      font-size: 21px;
+      font-weight: 800;
+      color: #4a5d23;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.2s, transform 0.15s;
+    }
+    .hud-value.urgent {
+      color: #c1121f;
+      animation: pulse 0.6s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.12); }
+    }
+    .hud-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .brand-tag {
+      font-size: 12px;
+      font-weight: bold;
+      color: #8c6d46;
+      background: #f5efe6;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid #dfd3c3;
+    }
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .combo-badge {
+      font-size: 11px;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(135deg, #d48c2a, #b5651d);
+      padding: 2px 8px;
+      border-radius: 10px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .icon-btn {
+      background: #f5efe6;
+      border: 1px solid #dfd3c3;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b705c;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .icon-btn.muted {
+      opacity: 0.45;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    /* 彈窗遮罩（開始、排行榜、結束畫面） */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 253, 249, 0.96);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 20px 22px 24px;
+      text-align: center;
+      z-index: 20;
+      overflow-y: auto;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .title-icon {
+      font-size: 42px;
+      margin-top: 6px;
+      margin-bottom: 4px;
+      animation: float 2.5s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    h1 {
+      font-size: 23px;
+      color: #3d4c22;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #6b705c;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    /* 玩家名字輸入框 */
+    .name-input-wrap {
+      width: 100%;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+    .name-label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      color: #6b705c;
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+    }
+    .name-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid #d9cebc;
+      background: #fff;
+      font-size: 14.5px;
+      color: #3d4c22;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .name-input:focus {
+      border-color: #6b8e23;
+      box-shadow: 0 0 0 3px rgba(107, 142, 35, 0.14);
+    }
+
+    .rules-card {
+      background: #ffffff;
+      border: 1px solid #e6dfd3;
+      border-radius: 14px;
+      padding: 10px 14px;
+      width: 100%;
+      margin-bottom: 14px;
+      text-align: left;
+      font-size: 13px;
+      color: #4f5443;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .rules-card div {
+      margin: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #6b8e23 0%, #556b2f 100%);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 15.5px;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(85, 107, 47, 0.28);
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+      max-width: 280px;
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn-secondary {
+      background: #fff;
+      color: #556b2f;
+      border: 1.5px solid #6b8e23;
+      box-shadow: none;
+      margin-top: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+    }
+    .btn-ghost {
+      background: #f5efe6;
+      color: #7d6b57;
+      border: 1px solid #dfd3c3;
+      box-shadow: none;
+      margin-top: 8px;
+      padding: 9px 20px;
+      font-size: 13px;
+    }
+
+    /* 排行榜卡片 */
+    .leaderboard-card {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #e6dfd3;
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin: 8px 0 14px;
+      box-shadow: 0 4px 14px rgba(74, 93, 35, 0.05);
+    }
+    .lb-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #e6dfd3;
+    }
+    .lb-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #3d4c22;
+    }
+    .lb-sub {
+      font-size: 11px;
+      color: #8c6d46;
+    }
+    .lb-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .lb-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: #faf7f2;
+      font-size: 13px;
+      color: #4f5443;
+      border: 1px solid transparent;
+    }
+    .lb-item.top-1 {
+      background: linear-gradient(135deg, #fffdf2 0%, #f9ecc8 100%);
+      border-color: #e5c158;
+      font-weight: 700;
+    }
+    .lb-item.top-2 {
+      background: #f4f6f8;
+      border-color: #cfd6de;
+    }
+    .lb-item.top-3 {
+      background: #fcf5ef;
+      border-color: #e0be9c;
+    }
+    .lb-item.current-run {
+      outline: 2px solid #6b8e23;
+      background: #f2f7e8;
+    }
+    .lb-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .lb-rank {
+      width: 24px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .lb-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #3d4c22;
+      font-weight: 600;
+    }
+    .lb-meta {
+      font-size: 11px;
+      color: #8a8f7d;
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+    .lb-score {
+      font-weight: 800;
+      color: #556b2f;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .lb-empty {
+      padding: 18px 8px;
+      font-size: 13px;
+      color: #8a8f7d;
+      text-align: center;
+    }
+
+    /* 行銷優惠券卡片 */
+    .coupon-box {
+      background: linear-gradient(135deg, #fff9f0 0%, #f7ebd9 100%);
+      border: 2px dashed #c59b6d;
+      border-radius: 14px;
+      padding: 12px 14px;
+      width: 100%;
+      margin: 10px 0 12px;
+    }
+    .coupon-box.vip {
+      background: linear-gradient(135deg, #fffdf5 0%, #f9e6c1 100%);
+      border-color: #d4af37;
+    }
+    .coupon-title {
+      font-size: 12px;
+      color: #8c6d46;
+      font-weight: bold;
+    }
+    .coupon-discount {
+      font-size: 20px;
+      font-weight: 800;
+      color: #b5651d;
+      margin: 3px 0;
+    }
+    .coupon-sub {
+      font-size: 11px;
+      color: #7d6b57;
+    }
+    .coupon-code-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 7px;
+    }
+    .code-text {
+      background: #fff;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: bold;
+      color: #3d4c22;
+      border: 1px solid #dfd3c3;
+      letter-spacing: 1px;
+    }
+    .copy-btn {
+      background: #8c6d46;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn.copied {
+      background: #556b2f;
+    }
+    .score-highlight {
+      font-size: 34px;
+      font-weight: 800;
+      color: #556b2f;
+      margin: 2px 0;
+    }
+    .rank-badge {
+      display: inline-block;
+      background: #e9f0dc;
+      color: #4a5d23;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: bold;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #7d8471;
+      margin-bottom: 2px;
+    }
+
+
+    .pause-btn {
+      background: #f5efe6;
+      border: 1px solid #dfd3c3;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b705c;
+      font-weight: bold;
+    }
+    .fever-banner {
+      position: absolute;
+      top: 74px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: linear-gradient(135deg, #ffd700 0%, #ffb703 100%);
+      color: #4a3200;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 12;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .fever-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .meaning-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+      margin: 6px 0 10px;
+      width: 100%;
+    }
+    .meaning-pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: #f3f0ea;
+      color: #9a9e8e;
+      border: 1px solid #e4ddd0;
+    }
+    .meaning-pill.collected {
+      background: #eef5e2;
+      color: #4a5d23;
+      border-color: #c5d9a3;
+      font-weight: 700;
+    }
+    .btn-cta {
+      display: inline-block;
+      text-decoration: none;
+      background: linear-gradient(135deg, #8c6d46 0%, #6e5332 100%);
+      color: #fff;
+      padding: 11px 24px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 30px;
+      box-shadow: 0 5px 14px rgba(140, 109, 70, 0.25);
+      width: 100%;
+      max-width: 280px;
+      margin-top: 8px;
+      transition: transform 0.15s;
+    }
+    .btn-cta:active {
+      transform: scale(0.96);
+    }
+    .pause-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 253, 249, 0.92);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 25;
+    }
+
+    /* 輕量提示 Toast */
+    .toast {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(61, 76, 34, 0.94);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 30;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <!-- 遊戲頂部狀態列 -->
+  <div class="hud">
+    <div class="hud-box">
+      <div class="hud-label">花藝積分</div>
+      <div class="hud-value" id="score-display">0</div>
+    </div>
+    <div class="hud-center">
+      <div class="brand-tag">LILY ATELIER 百合花研</div>
+      <div class="hud-controls">
+        <span class="combo-badge" id="combo-badge">連擊 x2</span>
+        <button class="icon-btn" id="bgm-toggle" title="切換背景音樂">🎵</button>
+        <button class="icon-btn" id="sfx-toggle" title="切換音效">🔊</button>
+        <button class="pause-btn hidden" id="pause-btn" title="暫停遊戲">❚❚</button>
+      </div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">剩餘時間</div>
+      <div class="hud-value" id="time-display">60.0s</div>
+    </div>
+  </div>
+
+  <div class="fever-banner" id="fever-banner">✨ 花海盛開時刻！雙倍花材登場</div>
+  <!-- 遊戲畫布 -->
+  <canvas id="gameCanvas"></canvas>
+
+
+  <!-- 暫停畫面 -->
+  <div class="pause-modal hidden" id="pause-screen">
+    <div class="title-icon">⏸️</div>
+    <h1>遊戲已暫停</h1>
+    <p class="subtitle">喘口氣，準備好就繼續採集百合花束吧！</p>
+    <button class="btn" id="resume-btn">繼續採集</button>
+    <button class="btn btn-secondary" id="quit-to-start-btn">回到開始畫面</button>
+  </div>
+
+  <!-- 開始畫面 -->
+  <div class="overlay" id="start-screen">
+    <div class="title-icon">⚜️</div>
+    <h1>百合花語採集挑戰</h1>
+    <p class="subtitle">限時 1 分鐘！輸入名字並左右滑動採集百合，<br>登上花藝榜解鎖專屬花禮折扣！</p>
+
+    <div class="name-input-wrap">
+      <label class="name-label" for="player-name-input">✏️ 你的花藝師暱稱（將顯示於排行榜）</label>
+      <input
+        type="text"
+        id="player-name-input"
+        class="name-input"
+        maxlength="14"
+        placeholder="例如：小百合 / 台中花藝控"
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="rules-card">
+      <div>🌸 <strong>純白香水百合</strong>：+10 分（解鎖祝福花語）</div>
+      <div>✨ <strong>金色皇室百合</strong>：+30 分（稀有高分花材）</div>
+      <div>🔥 <strong>連續採集不漏接</strong>：觸發連擊加成（最高 +10）</div>
+      <div>🍂 <strong>枯葉 / 蟲害</strong>：-15 分（中斷連擊，小心避開）</div>
+    </div>
+
+    <button class="btn" id="start-btn">開始 60 秒採集挑戰</button>
+    <button class="btn btn-secondary" id="open-lb-start-btn">🏆 查看花藝排行榜</button>
+  </div>
+
+  <!-- 獨立排行榜畫面 -->
+  <div class="overlay hidden" id="leaderboard-screen">
+    <div class="title-icon">🏆</div>
+    <h1>百合花藝排行榜</h1>
+    <p class="subtitle">60 秒限時採集最高分榮譽榜（本機儲存）</p>
+
+    <div class="leaderboard-card">
+      <div class="lb-header">
+        <span class="lb-title">TOP 10 花藝師</span>
+        <span class="lb-sub" id="lb-player-summary">目前選手：花藝師</span>
+      </div>
+      <ul class="lb-list" id="lb-list-modal"></ul>
+    </div>
+
+    <button class="btn" id="back-from-lb-btn">返回挑戰畫面</button>
+    <button class="btn btn-ghost" id="clear-lb-btn">清除排行榜紀錄</button>
+  </div>
+
+  <!-- 結算與行銷導購畫面 -->
+  <div class="overlay hidden" id="end-screen">
+    <div class="rank-badge" id="rank-title">🌱 見習花藝師</div>
+    <div class="hud-label" id="end-player-label">花藝師 本次採集總分</div>
+    <div class="score-highlight" id="final-score">0 分</div>
+    <div class="stats-row">
+      <span id="max-combo-text">最高連擊：0</span>
+      <span>•</span>
+      <span id="current-rank-text">榜單名次：未上榜</span>
+    </div>
+    <p class="subtitle" id="result-desc" style="margin-bottom: 2px;">成功收集滿滿的百合祝福！</p>
+
+    <!-- 結算頁 TOP 5 排行榜 -->
+    <div class="leaderboard-card" style="margin: 8px 0;">
+      <div class="lb-header">
+        <span class="lb-title">🏆 花藝排行榜（TOP 5）</span>
+        <span class="lb-sub" id="lb-end-rank-tag">即時更新</span>
+      </div>
+      <ul class="lb-list" id="lb-list-end"></ul>
+    </div>
+
+    <!-- 分級行銷轉換優惠券區塊 -->
+    <div class="coupon-box" id="coupon-box">
+      <div class="coupon-title" id="coupon-tier-title">🎁 品牌互動專屬禮遇</div>
+      <div class="coupon-discount" id="coupon-discount-text">全館鮮花花禮 85 折</div>
+      <div class="coupon-sub" id="coupon-sub-text">結帳輸入折扣碼即可折抵（滿千免運・限活動期間使用）</div>
+      <div class="coupon-code-row">
+        <span class="code-text" id="coupon-code">LILY85</span>
+        <button class="copy-btn" id="copy-btn">複製代碼</button>
+      </div>
+    </div>
+
+
+    <div class="meaning-pills" id="meaning-pills"></div>
+    <a class="btn-cta" id="brand-cta-btn" href="#top" target="_blank" rel="noopener noreferrer">🌸 前往品牌選購花禮</a>
+
+    <button class="btn" id="restart-btn">再玩一次刷新紀錄</button>
+    <button class="btn btn-secondary" id="share-btn">分享戰績給好友</button>
+  </div>
+
+  <div class="toast" id="toast">已複製！</div>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const container = document.getElementById('game-container');
+
+  // 介面元素
+  const scoreDisplay = document.getElementById('score-display');
+  const timeDisplay = document.getElementById('time-display');
+  const comboBadge = document.getElementById('combo-badge');
+  const bgmToggleBtn = document.getElementById('bgm-toggle');
+  const sfxToggleBtn = document.getElementById('sfx-toggle');
+
+  const startScreen = document.getElementById('start-screen');
+  const leaderboardScreen = document.getElementById('leaderboard-screen');
+  const endScreen = document.getElementById('end-screen');
+
+  const playerNameInput = document.getElementById('player-name-input');
+  const lbPlayerSummary = document.getElementById('lb-player-summary');
+  const lbListModal = document.getElementById('lb-list-modal');
+  const lbListEnd = document.getElementById('lb-list-end');
+  const lbEndRankTag = document.getElementById('lb-end-rank-tag');
+
+  const endPlayerLabel = document.getElementById('end-player-label');
+  const finalScoreEl = document.getElementById('final-score');
+  const rankTitleEl = document.getElementById('rank-title');
+  const resultDescEl = document.getElementById('result-desc');
+  const maxComboTextEl = document.getElementById('max-combo-text');
+  const currentRankTextEl = document.getElementById('current-rank-text');
+
+  const couponBox = document.getElementById('coupon-box');
+  const couponTierTitle = document.getElementById('coupon-tier-title');
+  const couponDiscountText = document.getElementById('coupon-discount-text');
+  const couponSubText = document.getElementById('coupon-sub-text');
+  const couponCodeEl = document.getElementById('coupon-code');
+  const copyBtn = document.getElementById('copy-btn');
+  const shareBtn = document.getElementById('share-btn');
+  const toastEl = document.getElementById('toast');
+
+  // 常數與狀態
+  const GAME_DURATION = 60;
+  const LEADERBOARD_KEY = 'lily_atelier_leaderboard_v1';
+  const PLAYER_NAME_KEY = 'lily_atelier_player_name';
+  const MAX_LB_ENTRIES = 10;
+
+  let score = 0;
+  let combo = 0;
+  let maxCombo = 0;
+  let timeLeft = GAME_DURATION;
+  let isPlaying = false;
+  let items = [];
+  let floatingTexts = [];
+  let particles = [];
+  let bgPetals = [];
+  let lastFrameTime = 0;
+  let spawnAccum = 0;
+  let animationFrameId = null;
+  let sfxEnabled = true;
+  let bgmEnabled = true;
+  let activeCouponCode = 'LILY85';
+  let currentPlayerName = localStorage.getItem(PLAYER_NAME_KEY) || '';
+  let lastRunId = null;
+
+  const keys = { ArrowLeft: false, ArrowRight: false, a: false, d: false };
+
+  // 初始化玩家名字輸入框
+  playerNameInput.value = currentPlayerName;
+  function getPlayerName() {
+    const raw = (playerNameInput.value || '').trim();
+    return raw ? raw.slice(0, 14) : '花藝師';
+  }
+  playerNameInput.addEventListener('input', () => {
+    currentPlayerName = playerNameInput.value;
+    localStorage.setItem(PLAYER_NAME_KEY, currentPlayerName.trim());
+    lbPlayerSummary.textContent = `目前選手：${getPlayerName()}`;
+  });
+  lbPlayerSummary.textContent = `目前選手：${getPlayerName()}`;
+
+
+  // ==========================================
+  // 品牌與活動自訂設定（上線時可依需求修改）
+  // ==========================================
+  const BRAND_SHOP_URL = ''; // 填入官網、LINE 官方帳號或市集預約網址；留空則複製折扣碼並提示
+  const CUSTOM_SHARE_URL = ''; // 填入正式活動頁網址；留空則使用目前網址
+
+  const pauseBtn = document.getElementById('pause-btn');
+  const pauseScreen = document.getElementById('pause-screen');
+  const resumeBtn = document.getElementById('resume-btn');
+  const quitToStartBtn = document.getElementById('quit-to-start-btn');
+  const feverBanner = document.getElementById('fever-banner');
+  const meaningPillsEl = document.getElementById('meaning-pills');
+  const brandCtaBtn = document.getElementById('brand-cta-btn');
+
+  let isPaused = false;
+  let collectedMeanings = new Set();
+  let feverShown = false;
+
+  function renderMeaningPills() {
+    meaningPillsEl.innerHTML = lilyMeanings.map((m) => {
+      const active = collectedMeanings.has(m);
+      return `<span class="meaning-pill ${active ? 'collected' : ''}">${active ? '✓ ' : ''}${m}</span>`;
+    }).join('');
+  }
+
+  function pauseGame() {
+    if (!isPlaying || isPaused) return;
+    isPaused = true;
+    stopBgm();
+    cancelAnimationFrame(animationFrameId);
+    pauseScreen.classList.remove('hidden');
+  }
+
+  function resumeGame() {
+    if (!isPlaying || !isPaused) return;
+    isPaused = false;
+    lastFrameTime = 0;
+    pauseScreen.classList.add('hidden');
+    if (bgmEnabled) startBgm();
+    animationFrameId = requestAnimationFrame(update);
+  }
+
+  function returnToStart() {
+    isPlaying = false;
+    isPaused = false;
+    stopBgm();
+    cancelAnimationFrame(animationFrameId);
+    pauseBtn.classList.add('hidden');
+    pauseScreen.classList.add('hidden');
+    endScreen.classList.add('hidden');
+    leaderboardScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+  }
+
+  pauseBtn.addEventListener('click', () => {
+    if (isPaused) resumeGame();
+    else pauseGame();
+  });
+  resumeBtn.addEventListener('click', resumeGame);
+  quitToStartBtn.addEventListener('click', returnToStart);
+
+  // 切換分頁或最小化時自動暫停，避免時間與音樂不同步
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isPlaying && !isPaused) {
+      pauseGame();
+    }
+  });
+
+  brandCtaBtn.addEventListener('click', (e) => {
+    copyTextFallback(activeCouponCode).then(() => {
+      showToast(`已複製折扣碼 ${activeCouponCode}`);
+    });
+    if (!BRAND_SHOP_URL) {
+      e.preventDefault();
+      showToast(`已複製折扣碼 ${activeCouponCode}，可於結帳時使用！`);
+    } else {
+      brandCtaBtn.href = BRAND_SHOP_URL;
+    }
+  });
+
+  // ==========================================
+  // 排行榜儲存與渲染
+  // ==========================================
+  function loadLeaderboard() {
+    try {
+      const data = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveLeaderboard(list) {
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list.slice(0, MAX_LB_ENTRIES)));
+  }
+
+  function recordScoreToLeaderboard(name, finalScore, bestComboValue) {
+    const entryId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const now = new Date();
+    const dateLabel = `${now.getMonth() + 1}/${now.getDate()}`;
+    const list = loadLeaderboard();
+
+    const newEntry = {
+      id: entryId,
+      name,
+      score: finalScore,
+      maxCombo: bestComboValue,
+      date: dateLabel
+    };
+
+    list.push(newEntry);
+    list.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (b.maxCombo || 0) - (a.maxCombo || 0);
+    });
+
+    const trimmed = list.slice(0, MAX_LB_ENTRIES);
+    saveLeaderboard(trimmed);
+
+    const rankIndex = trimmed.findIndex((item) => item.id === entryId);
+    return {
+      list: trimmed,
+      rank: rankIndex >= 0 ? rankIndex + 1 : null,
+      entryId
+    };
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderLeaderboardList(targetUl, limit = 10, highlightId = null) {
+    const list = loadLeaderboard().slice(0, limit);
+    if (!list.length) {
+      targetUl.innerHTML = '<li class="lb-empty">目前還沒有紀錄，快來成為第一位花藝師吧！</li>';
+      return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    targetUl.innerHTML = list.map((item, idx) => {
+      const rankNum = idx + 1;
+      const topClass = rankNum === 1 ? 'top-1' : rankNum === 2 ? 'top-2' : rankNum === 3 ? 'top-3' : '';
+      const currentClass = highlightId && item.id === highlightId ? 'current-run' : '';
+      const rankIcon = medals[idx] || `#${rankNum}`;
+      const comboInfo = item.maxCombo >= 2 ? `連擊 x${item.maxCombo}` : (item.date || '');
+
+      return `
+        <li class="lb-item ${topClass} ${currentClass}">
+          <div class="lb-left">
+            <span class="lb-rank">${rankIcon}</span>
+            <span class="lb-name">${escapeHtml(item.name)}</span>
+          </div>
+          <span class="lb-meta">${escapeHtml(comboInfo)}</span>
+          <span class="lb-score">${item.score} 分</span>
+        </li>
+      `;
+    }).join('');
+  }
+
+  // ==========================================
+  // Web Audio API 音效 + 輕快花藝圓舞曲背景音樂
+  // ==========================================
+  let audioCtx = null;
+  let bgmTimer = null;
+  let bgmStep = 0;
+
+  const bgmPattern = [
+    { note: 349.23, bass: 174.61, dur: 0.42 },
+    { note: 440.00, bass: null,   dur: 0.35 },
+    { note: 523.25, bass: null,   dur: 0.35 },
+    { note: 659.25, bass: 261.63, dur: 0.45 },
+    { note: 523.25, bass: null,   dur: 0.35 },
+    { note: 440.00, bass: null,   dur: 0.35 },
+
+    { note: 466.16, bass: 233.08, dur: 0.42 },
+    { note: 587.33, bass: null,   dur: 0.35 },
+    { note: 698.46, bass: null,   dur: 0.35 },
+    { note: 880.00, bass: 293.66, dur: 0.45 },
+    { note: 698.46, bass: null,   dur: 0.35 },
+    { note: 587.33, bass: null,   dur: 0.35 },
+
+    { note: 392.00, bass: 196.00, dur: 0.42 },
+    { note: 466.16, bass: null,   dur: 0.35 },
+    { note: 587.33, bass: null,   dur: 0.35 },
+    { note: 698.46, bass: 293.66, dur: 0.45 },
+    { note: 587.33, bass: null,   dur: 0.35 },
+    { note: 466.16, bass: null,   dur: 0.35 },
+
+    { note: 523.25, bass: 130.81, dur: 0.42 },
+    { note: 587.33, bass: null,   dur: 0.35 },
+    { note: 659.25, bass: null,   dur: 0.35 },
+    { note: 783.99, bass: 196.00, dur: 0.45 },
+    { note: 659.25, bass: null,   dur: 0.35 },
+    { note: 523.25, bass: null,   dur: 0.35 }
+  ];
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playBgmStep() {
+    if (!bgmEnabled || !isPlaying) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const stepData = bgmPattern[bgmStep % bgmPattern.length];
+    const now = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(stepData.note, now);
+
+    const vol = timeLeft <= 10 ? 0.065 : 0.055;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + stepData.dur);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + stepData.dur + 0.02);
+
+    if (stepData.bass) {
+      const bassOsc = audioCtx.createOscillator();
+      const bassGain = audioCtx.createGain();
+      bassOsc.type = 'triangle';
+      bassOsc.frequency.setValueAtTime(stepData.bass, now);
+
+      bassGain.gain.setValueAtTime(0.001, now);
+      bassGain.gain.linearRampToValueAtTime(0.04, now + 0.03);
+      bassGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.65);
+
+      bassOsc.connect(bassGain);
+      bassGain.connect(audioCtx.destination);
+      bassOsc.start(now);
+      bassOsc.stop(now + 0.68);
+    }
+
+    bgmStep++;
+    const intervalMs = timeLeft <= 10 ? 235 : 290;
+    bgmTimer = setTimeout(playBgmStep, intervalMs);
+  }
+
+  function startBgm() {
+    stopBgm();
+    if (!bgmEnabled) return;
+    bgmStep = 0;
+    playBgmStep();
+  }
+
+  function stopBgm() {
+    if (bgmTimer) {
+      clearTimeout(bgmTimer);
+      bgmTimer = null;
+    }
+  }
+
+  function playTone(type) {
+    if (!sfxEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'white') {
+      const pitch = 587.33 + Math.min(combo, 10) * 28;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(pitch * 1.25, now + 0.14);
+      gain.gain.setValueAtTime(0.13, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === 'gold') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(783.99, now);
+      osc.frequency.setValueAtTime(1046.5, now + 0.08);
+      gain.gain.setValueAtTime(0.17, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'bad') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(190, now);
+      osc.frequency.exponentialRampToValueAtTime(95, now + 0.22);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+      osc.start(now);
+      osc.stop(now + 0.24);
+    }
+  }
+
+  bgmToggleBtn.addEventListener('click', () => {
+    bgmEnabled = !bgmEnabled;
+    bgmToggleBtn.classList.toggle('muted', !bgmEnabled);
+    if (bgmEnabled && isPlaying) {
+      startBgm();
+      showToast('背景音樂：開啟');
+    } else {
+      stopBgm();
+      showToast('背景音樂：靜音');
+    }
+  });
+
+  sfxToggleBtn.addEventListener('click', () => {
+    sfxEnabled = !sfxEnabled;
+    sfxToggleBtn.textContent = sfxEnabled ? '🔊' : '🔇';
+    sfxToggleBtn.classList.toggle('muted', !sfxEnabled);
+    showToast(sfxEnabled ? '遊戲音效：開啟' : '遊戲音效：靜音');
+  });
+
+  // ==========================================
+  // 畫布與遊戲邏輯
+  // ==========================================
+  const lilyMeanings = [
+    "純潔高雅",
+    "百年好合",
+    "心想事成",
+    "深深祝福",
+    "萬事順利",
+    "優雅綻放"
+  ];
+
+  const basket = {
+    x: 0,
+    y: 0,
+    width: 82,
+    height: 46,
+    bounce: 0
+  };
+
+  let logicalWidth = 420;
+  let logicalHeight = 750;
+
+  function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    logicalWidth = container.clientWidth;
+    logicalHeight = container.clientHeight;
+    canvas.width = logicalWidth * dpr;
+    canvas.height = logicalHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    basket.y = logicalHeight - 90;
+    if (basket.x === 0 || basket.x > logicalWidth - basket.width) {
+      basket.x = logicalWidth / 2 - basket.width / 2;
+    }
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function initBgPetals() {
+    bgPetals = [];
+    for (let i = 0; i < 14; i++) {
+      bgPetals.push({
+        x: Math.random() * logicalWidth,
+        y: Math.random() * logicalHeight,
+        size: Math.random() * 5 + 4,
+        speedY: Math.random() * 25 + 15,
+        swayPhase: Math.random() * Math.PI * 2,
+        rot: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  initBgPetals();
+
+  function moveBasketTo(clientX) {
+    if (!isPlaying) return;
+    const rect = canvas.getBoundingClientRect();
+    let targetX = clientX - rect.left - basket.width / 2;
+    targetX = Math.max(8, Math.min(logicalWidth - basket.width - 8, targetX));
+    basket.x = targetX;
+  }
+
+  canvas.addEventListener('mousemove', (e) => moveBasketTo(e.clientX));
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length > 0) moveBasketTo(e.touches[0].clientX);
+  }, { passive: false });
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) moveBasketTo(e.touches[0].clientX);
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (document.activeElement === playerNameInput) return;
+    if (e.key in keys) keys[e.key] = true;
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key in keys) keys[e.key] = false;
+  });
+
+  function triggerShake() {
+    container.style.transform = 'translateX(-5px)';
+    setTimeout(() => { container.style.transform = 'translateX(5px)'; }, 50);
+    setTimeout(() => { container.style.transform = 'translateX(0)'; }, 100);
+  }
+
+  function spawnParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const speed = Math.random() * 140 + 60;
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 40,
+        size: Math.random() * 4 + 2.5,
+        color,
+        life: 1.0
+      });
+    }
+  }
+
+  function drawBasket() {
+    ctx.save();
+    const scaleY = 1 + basket.bounce * 0.14;
+    const scaleX = 1 - basket.bounce * 0.08;
+    const centerX = basket.x + basket.width / 2;
+    const bottomY = basket.y + basket.height;
+
+    ctx.translate(centerX, bottomY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-centerX, -bottomY);
+
+    ctx.fillStyle = 'rgba(74, 93, 35, 0.12)';
+    ctx.beginPath();
+    ctx.ellipse(centerX, bottomY + 4, basket.width * 0.42, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const grad = ctx.createLinearGradient(basket.x, basket.y, basket.x, bottomY);
+    grad.addColorStop(0, '#d2a878');
+    grad.addColorStop(1, '#b08252');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(basket.x + 6, basket.y);
+    ctx.lineTo(basket.x + basket.width - 6, basket.y);
+    ctx.lineTo(basket.x + basket.width - 14, bottomY);
+    ctx.lineTo(basket.x + 14, bottomY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#966d42';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#6b8e23';
+    ctx.beginPath();
+    ctx.ellipse(centerX, basket.y, basket.width / 2 + 4, 7.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fffdf9';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('LILY', centerX, basket.y + 27);
+    ctx.restore();
+  }
+
+  function drawLily(x, y, radius, isGold, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+
+    if (isGold) {
+      ctx.shadowColor = 'rgba(255, 193, 7, 0.55)';
+      ctx.shadowBlur = 12;
+    }
+
+    const petalCount = 6;
+    for (let i = 0; i < petalCount; i++) {
+      ctx.rotate((Math.PI * 2) / petalCount);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(radius * 0.48, -radius * 0.52, 0, -radius);
+      ctx.quadraticCurveTo(-radius * 0.48, -radius * 0.52, 0, 0);
+      ctx.fillStyle = isGold ? '#ffd700' : '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = isGold ? '#d49b1a' : '#d8e2dc';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = isGold ? '#ff8c00' : '#9acd32';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBadLeaf(x, y, radius, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -radius);
+    ctx.quadraticCurveTo(radius * 0.85, -radius * 0.2, 0, radius);
+    ctx.quadraticCurveTo(-radius * 0.85, -radius * 0.2, 0, -radius);
+    ctx.fillStyle = '#8b5a2b';
+    ctx.fill();
+    ctx.strokeStyle = '#5c3a18';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -radius * 0.7);
+    ctx.lineTo(0, radius * 0.85);
+    ctx.strokeStyle = '#6e451e';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function spawnItem() {
+    const isFever = timeLeft <= 35 && timeLeft >= 25;
+    if (isFever && !feverShown) {
+      feverShown = true;
+      feverBanner.classList.add('show');
+      setTimeout(() => feverBanner.classList.remove('show'), 3200);
+    }
+    const rand = Math.random();
+    const goldThreshold = isFever ? 0.68 : 0.85;
+    const leafThreshold = isFever ? 0.54 : 0.67;
+    let type = 'white_lily';
+    if (rand > goldThreshold) {
+      type = 'gold_lily';
+    } else if (rand > leafThreshold) {
+      type = 'bad_leaf';
+    }
+
+    const progress = (GAME_DURATION - timeLeft) / GAME_DURATION;
+    const baseSpeed = 195 + Math.random() * 110 + progress * 165;
+
+    items.push({
+      x: Math.random() * (logicalWidth - 56) + 28,
+      y: -30,
+      radius: type === 'gold_lily' ? 23 : 20,
+      speed: baseSpeed,
+      swayAmp: (Math.random() - 0.5) * 35,
+      swayFreq: Math.random() * 2 + 1.5,
+      age: 0,
+      type,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 2.2
+    });
+  }
+
+  function addFloatingText(text, x, y, color) {
+    floatingTexts.push({ text, x, y, color, alpha: 1.0 });
+  }
+
+  function updateComboUI() {
+    if (combo >= 2) {
+      comboBadge.textContent = `連擊 x${combo}`;
+      comboBadge.classList.add('active');
+    } else {
+      comboBadge.classList.remove('active');
+    }
+  }
+
+  function update(timestamp) {
+    if (!isPlaying) return;
+
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
+    lastFrameTime = timestamp;
+
+    timeLeft = Math.max(0, timeLeft - dt);
+    timeDisplay.textContent = timeLeft.toFixed(1) + 's';
+    if (timeLeft <= 10) {
+      timeDisplay.classList.add('urgent');
+    } else {
+      timeDisplay.classList.remove('urgent');
+    }
+
+    if (timeLeft <= 0) {
+      endGame();
+      return;
+    }
+
+    const moveSpeed = 480 * dt;
+    if (keys.ArrowLeft || keys.a) {
+      basket.x = Math.max(8, basket.x - moveSpeed);
+    }
+    if (keys.ArrowRight || keys.d) {
+      basket.x = Math.min(logicalWidth - basket.width - 8, basket.x + moveSpeed);
+    }
+
+    if (basket.bounce > 0) {
+      basket.bounce = Math.max(0, basket.bounce - dt * 6);
+    }
+
+    ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+    for (const p of bgPetals) {
+      p.y += p.speedY * dt;
+      p.swayPhase += dt * 1.5;
+      p.rot += dt * 0.8;
+      if (p.y > logicalHeight + 10) {
+        p.y = -10;
+        p.x = Math.random() * logicalWidth;
+      }
+      ctx.save();
+      ctx.translate(p.x + Math.sin(p.swayPhase) * 14, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const spawnInterval = Math.max(0.26, 0.45 - ((GAME_DURATION - timeLeft) / GAME_DURATION) * 0.17);
+    spawnAccum += dt;
+    if (spawnAccum >= spawnInterval) {
+      spawnItem();
+      spawnAccum = 0;
+    }
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      item.age += dt;
+      item.y += item.speed * dt;
+      item.x += Math.sin(item.age * item.swayFreq) * item.swayAmp * dt;
+      item.x = Math.max(24, Math.min(logicalWidth - 24, item.x));
+      item.rotation += item.rotSpeed * dt;
+
+      if (item.type === 'white_lily') {
+        drawLily(item.x, item.y, item.radius, false, item.rotation);
+      } else if (item.type === 'gold_lily') {
+        drawLily(item.x, item.y, item.radius, true, item.rotation);
+      } else {
+        drawBadLeaf(item.x, item.y, item.radius, item.rotation);
+      }
+
+      if (
+        item.y + item.radius > basket.y &&
+        item.y - item.radius < basket.y + basket.height &&
+        item.x > basket.x - 8 &&
+        item.x < basket.x + basket.width + 8
+      ) {
+        if (item.type === 'white_lily') {
+          combo++;
+          if (combo > maxCombo) maxCombo = combo;
+          const bonus = Math.min(10, Math.floor((combo - 1) / 2) * 2);
+          const gained = 10 + bonus;
+          score += gained;
+
+          const meaning = lilyMeanings[Math.floor(Math.random() * lilyMeanings.length)];
+          collectedMeanings.add(meaning);
+          const label = bonus > 0 ? `${meaning} +${gained}` : `${meaning} +10`;
+          addFloatingText(label, item.x, basket.y - 16, '#4a5d23');
+          spawnParticles(item.x, basket.y, '#ffffff', 10);
+          basket.bounce = 1;
+          playTone('white');
+        } else if (item.type === 'gold_lily') {
+          combo++;
+          if (combo > maxCombo) maxCombo = combo;
+          const bonus = Math.min(10, Math.floor((combo - 1) / 2) * 2);
+          const gained = 30 + bonus;
+          score += gained;
+
+          addFloatingText(`✨ 皇室百合 +${gained}`, item.x, basket.y - 16, '#b5651d');
+          spawnParticles(item.x, basket.y, '#ffd700', 16);
+          basket.bounce = 1.2;
+          playTone('gold');
+        } else {
+          combo = 0;
+          score = Math.max(0, score - 15);
+          addFloatingText('🍂 枯葉受損 -15', item.x, basket.y - 16, '#c1121f');
+          spawnParticles(item.x, basket.y, '#8b5a2b', 10);
+          triggerShake();
+          playTone('bad');
+        }
+
+        updateComboUI();
+        scoreDisplay.textContent = score;
+        items.splice(i, 1);
+        continue;
+      }
+
+      if (item.y - item.radius > logicalHeight) {
+        if (item.type !== 'bad_leaf' && combo > 0) {
+          combo = 0;
+          updateComboUI();
+        }
+        items.splice(i, 1);
+      }
+    }
+
+    drawBasket();
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const pt = particles[i];
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.vy += 260 * dt;
+      pt.life -= dt * 2.2;
+      if (pt.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha = pt.life;
+      ctx.fillStyle = pt.color;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 55 * dt;
+      ft.alpha -= dt * 1.15;
+      if (ft.alpha <= 0) {
+        floatingTexts.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha = ft.alpha;
+      ctx.font = 'bold 14px "PingFang TC", "Microsoft JhengHei", sans-serif';
+      ctx.fillStyle = ft.color;
+      ctx.textAlign = 'center';
+      const clampedX = Math.max(80, Math.min(logicalWidth - 80, ft.x));
+      ctx.fillText(ft.text, clampedX, ft.y);
+      ctx.restore();
+    }
+
+    animationFrameId = requestAnimationFrame(update);
+  }
+
+  function startGame() {
+    const playerName = getPlayerName();
+    localStorage.setItem(PLAYER_NAME_KEY, playerNameInput.value.trim());
+
+    initAudio();
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    timeLeft = GAME_DURATION;
+    isPaused = false;
+    feverShown = false;
+    collectedMeanings = new Set();
+    feverBanner.classList.remove('show');
+    pauseBtn.classList.remove('hidden');
+    pauseScreen.classList.add('hidden');
+    items = [];
+    floatingTexts = [];
+    particles = [];
+    spawnAccum = 0.25;
+    lastFrameTime = 0;
+    isPlaying = true;
+
+    scoreDisplay.textContent = '0';
+    timeDisplay.textContent = GAME_DURATION.toFixed(1) + 's';
+    timeDisplay.classList.remove('urgent');
+    updateComboUI();
+    basket.x = logicalWidth / 2 - basket.width / 2;
+
+    startScreen.classList.add('hidden');
+    leaderboardScreen.classList.add('hidden');
+    endScreen.classList.add('hidden');
+
+    startBgm();
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(update);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    isPaused = false;
+    pauseBtn.classList.add('hidden');
+    feverBanner.classList.remove('show');
+    stopBgm();
+    cancelAnimationFrame(animationFrameId);
+    renderMeaningPills();
+
+    const playerName = getPlayerName();
+    const lbResult = recordScoreToLeaderboard(playerName, score, maxCombo);
+    lastRunId = lbResult.entryId;
+
+    endPlayerLabel.textContent = `${playerName} 本次採集總分`;
+    finalScoreEl.textContent = score + ' 分';
+    maxComboTextEl.textContent = `最高連擊：${maxCombo}`;
+    currentRankTextEl.textContent = lbResult.rank
+      ? `榜單名次：第 ${lbResult.rank} 名`
+      : '榜單名次：未進入前 10 名';
+    lbEndRankTag.textContent = lbResult.rank ? `本局第 ${lbResult.rank} 名` : 'TOP 10 榜單';
+
+    renderLeaderboardList(lbListEnd, 5, lastRunId);
+
+    if (score >= 700) {
+      rankTitleEl.textContent = '👑 首席百合花藝大師';
+      resultDescEl.textContent = '神級採集手速！解鎖最高等級 VIP 專屬花禮優惠！';
+      couponBox.classList.add('vip');
+      couponTierTitle.textContent = '👑 大師級隱藏版禮遇';
+      couponDiscountText.textContent = '全館鮮花花禮 75 折';
+      couponSubText.textContent = '結帳輸入 VIP 代碼享最高折扣（免運費・限活動期間使用）';
+      activeCouponCode = 'LILYVIP75';
+    } else if (score >= 400) {
+      rankTitleEl.textContent = '🌿 資深花藝設計師';
+      resultDescEl.textContent = '眼光精準！成功採集到優質的新鮮百合花材！';
+      couponBox.classList.remove('vip');
+      couponTierTitle.textContent = '🎁 資深花藝專屬禮遇';
+      couponDiscountText.textContent = '全館鮮花花禮 8 折';
+      couponSubText.textContent = '結帳輸入折扣碼即可折抵（滿千免運・限活動期間使用）';
+      activeCouponCode = 'LILY80';
+    } else {
+      rankTitleEl.textContent = '🌱 見習花藝師';
+      resultDescEl.textContent = '不錯的開始！挑戰 400 分以上可解鎖更高折扣喔！';
+      couponBox.classList.remove('vip');
+      couponTierTitle.textContent = '🎁 品牌互動見面禮';
+      couponDiscountText.textContent = '全館鮮花花禮 85 折';
+      couponSubText.textContent = '結帳輸入折扣碼即可折抵（滿千免運・限活動期間使用）';
+      activeCouponCode = 'LILY85';
+    }
+
+    couponCodeEl.textContent = activeCouponCode;
+    copyBtn.textContent = '複製代碼';
+    copyBtn.classList.remove('copied');
+    endScreen.classList.remove('hidden');
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  function copyTextFallback(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      resolve();
+    });
+  }
+
+  // 畫面切換與按鈕事件
+  document.getElementById('open-lb-start-btn').addEventListener('click', () => {
+    lbPlayerSummary.textContent = `目前選手：${getPlayerName()}`;
+    renderLeaderboardList(lbListModal, 10, lastRunId);
+    leaderboardScreen.classList.remove('hidden');
+  });
+
+  document.getElementById('back-from-lb-btn').addEventListener('click', () => {
+    leaderboardScreen.classList.add('hidden');
+  });
+
+  document.getElementById('clear-lb-btn').addEventListener('click', () => {
+    localStorage.removeItem(LEADERBOARD_KEY);
+    lastRunId = null;
+    renderLeaderboardList(lbListModal, 10, null);
+    showToast('已清除排行榜紀錄');
+  });
+
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  document.getElementById('restart-btn').addEventListener('click', startGame);
+
+  copyBtn.addEventListener('click', () => {
+    copyTextFallback(activeCouponCode).then(() => {
+      copyBtn.textContent = '已複製！';
+      copyBtn.classList.add('copied');
+      showToast(`已複製折扣碼：${activeCouponCode}`);
+    });
+  });
+
+  function getPublicShareUrl() {
+    if (CUSTOM_SHARE_URL && /^https?:\/\//i.test(CUSTOM_SHARE_URL.trim())) {
+      return CUSTOM_SHARE_URL.trim();
+    }
+    const href = window.location.href || '';
+    if (/^https?:\/\//i.test(href) && !href.includes('localhost') && !href.includes('127.0.0.1')) {
+      return href;
+    }
+    return '';
+  }
+
+  shareBtn.addEventListener('click', async () => {
+    const playerName = getPlayerName();
+    const shareUrl = getPublicShareUrl();
+    const shareText = shareUrl
+      ? `${playerName} 在「LILY ATELIER 百合花研」60 秒採集挑戰拿到 ${score} 分，解鎖花禮折扣碼【${activeCouponCode}】！快來一起挑戰：`
+      : `${playerName} 在「LILY ATELIER 百合花研」60 秒採集挑戰拿到 ${score} 分，解鎖花禮折扣碼【${activeCouponCode}】！`;
+
+    if (navigator.share && shareUrl) {
+      try {
+        await navigator.share({
+          title: '百合花語｜品牌限時採集挑戰',
+          text: shareText,
+          url: shareUrl
+        });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
+    const fullCopy = shareUrl ? `${shareText} ${shareUrl}` : shareText;
+    copyTextFallback(fullCopy).then(() => {
+      if (shareUrl) {
+        showToast('已複製戰績與活動連結，快貼到 LINE 給好友！');
+      } else {
+        showToast('已複製戰績與折扣碼！（上架公開網址後會自動附連結）');
+      }
+    });
+  });
+</script>
+</body>
+</html>
